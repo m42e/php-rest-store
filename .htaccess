@@ -1,0 +1,8 @@
+
+#####################################
+# Redirect stuff
+#####################################
+RewriteEngine on
+RewriteBase /
+RewriteCond %{REQUEST_URI} !^/index.php$
+RewriteRule . index.php [L] 
