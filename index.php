@@ -4,7 +4,7 @@ require("vendor/autoload.php");
 
 use Respect\Rest\Router;
 
-define('SALT', "<CHANGE HERE>");
+define('SALT', "lakhfdlhaudfiaidnfvknadsklfhakhsdfkadsfl");
 
 function getfilename($id){
 	return 'data/'.$id;
@@ -21,6 +21,15 @@ function getInfo(){
 
 function is_sha1($str) {
     return (bool) preg_match('/^[0-9a-f]{40}$/i', $str);
+}
+
+function getIds($id){
+	$origid = $id;
+	if(!is_sha1($id)){
+		$origid = $id;
+		$id = sha1($id.SALT);
+	}
+	return array($id, $origid);
 }
 
 $r3 = new Router();
@@ -48,9 +57,7 @@ $r3->get('/get/*/*', function($id,$meta=null) {
 			return "fail";
 		}
 	}
-	if(!is_sha1($id)){
-		$id = sha1($id.SALT);
-	}
+	list($id, ) = getIds($id);
 	if(is_sha1($id) && file_exists(getfilename($id).$meta)){
 		$data = file_get_contents(getfilename($id).$meta);
 	}
@@ -86,10 +93,8 @@ $r3->get('/get/*/*', function($id,$meta=null) {
 ));
 
 $r3->post('/put/*/*/**', function($id, $metaavailable=null, $meta=null) {
-	if(!is_sha1($id)){
-		$id = sha1($id.SALT);
-	}
-	if(is_sha1($id) && file_exists(getfilename($id))){
+	list($id, $origid) = getIds($id);
+	if(file_exists(getfilename($id))){
 		$data = array(
 			'written' => getInfo()
 		);
@@ -115,6 +120,7 @@ $r3->post('/put/*/*/**', function($id, $metaavailable=null, $meta=null) {
 		stream_copy_to_stream($input, $file);
 		fclose($input);
 		fclose($file);
+		$data['written']['accessedvia'] = $origid;
 		$data['written']['length'] = $_FILES['file']['size'];
 		/* save the metadata */
 		if($metaavailable != null){
@@ -128,10 +134,8 @@ $r3->post('/put/*/*/**', function($id, $metaavailable=null, $meta=null) {
 
 
 $r3->post('/prepend/*/*/**', function($id, $metaavailable=null, $meta = null) {
-	if(!is_sha1($id)){
-		$id = sha1($id.SALT);
-	}
-	if(is_sha1($id) && file_exists(getfilename($id))){
+	list($id, $origid) = getIds($id);
+	if(file_exists(getfilename($id))){
 		$data = file_get_contents($_FILES['file']['tmp_name']);
 
 		$handle = fopen(getfilename($id), "r+");
@@ -150,6 +154,7 @@ $r3->post('/prepend/*/*/**', function($id, $metaavailable=null, $meta = null) {
 		$data = json_decode(file_get_contents(getfilename($id).'.meta'), true);
 		$newdata = getInfo();
 		$newdata['length'] = $_FILES['file']['size'];
+		$newdata['accessedvia'] = $origid;
 		if($metaavailable != null){
 			for($runthrough = 0; $runthrough < count($meta); $runthrough += 2){
 				$newdata['meta'][$meta[$runthrough]] = $meta[$runthrough + 1];
@@ -161,10 +166,9 @@ $r3->post('/prepend/*/*/**', function($id, $metaavailable=null, $meta = null) {
 });
 
 $r3->post('/append/*/*/**', function($id, $metaavailable=null, $meta = null) {
-	if(!is_sha1($id)){
-		$id = sha1($id.SALT);
-	}
-	if(is_sha1($id) && file_exists(getfilename($id))){
+	list($id, $origid) = getIds($id);
+	if(file_exists(getfilename($id))){
+		
 		/* append the input data */
 		$input = fopen($_FILES['file']['tmp_name'], 'rb');
 		$file = fopen(getfilename($id), 'ab');
@@ -174,6 +178,7 @@ $r3->post('/append/*/*/**', function($id, $metaavailable=null, $meta = null) {
 		$data = json_decode(file_get_contents(getfilename($id).'.meta'), true);
 		$newdata = getInfo();
 		$newdata['length'] = $_FILES['file']['size'];
+		$newdata['accessedvia'] = $origid;
 		if($metaavailable != null){
 			for($runthrough = 0; $runthrough < count($meta); $runthrough += 2){
 				$newdata['meta'][$meta[$runthrough]] = $meta[$runthrough + 1];
