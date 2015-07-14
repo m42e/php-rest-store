@@ -58,8 +58,8 @@ $r3->get('/', function() {
 	return '';
 });
 
-$r3->get('/newid/*', function($code) {
-	$id = sha1(($code).SALT);
+$r3->get('/newid/*', function($id) {
+	list($id, ) = getIds($id);
 	touch(getfilename($id));
 	touch(getfilename($id).'.meta');
 	return $id;
@@ -77,7 +77,7 @@ $r3->get('/get/*/*', function($id,$meta=null) {
 		}
 	}
 	list($id, ) = getIds($id);
-	if(is_sha1($id) && file_exists(getfilename($id).$meta)){
+	if(file_exists(getfilename($id).$meta)){
 		$data = file_get_contents(getfilename($id).$meta);
 	}
 	return $data;
